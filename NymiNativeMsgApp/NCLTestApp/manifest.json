@@ -1,0 +1,9 @@
+{
+  "name": "com.nymi.nativemsg",
+  "description": "Communicates with the Nymi device itself",
+  "path": "W:\\ChromeExtension\\NymiNativeMsgApp\\Debug\\NCLTestApp.exe",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://pinjhlbnkccgfjkiamamclhkgbnlkmpb/"
+  ]
+}

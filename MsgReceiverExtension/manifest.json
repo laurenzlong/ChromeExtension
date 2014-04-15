@@ -1,0 +1,29 @@
+{
+  "name": "Nymi Chrome Extension",
+  "version": "1.0",
+  "description": "This extension will autofill online forms",
+  "browser_action": {
+    "default_title": "autofill forms",
+    "default_icon": "icon_16.png",
+    "default_popup": "index.html"
+  },
+  "background": {
+    "scripts": ["eventPage.js"],
+    "persistent": true
+  },
+  "content_scripts": [
+    {
+      "matches" : [
+        "<all_urls>"
+      ],
+      "js": ["jquery-1.8.2.min.js", "contentScript.js"],
+      "run_at": "document_idle" // or document_start, document_end, document_idle
+    }
+  ],
+  "options_page": "options.html",
+  "permissions": [
+    "notifications", 
+    "nativeMessaging"
+    ],
+  "manifest_version": 2
+}

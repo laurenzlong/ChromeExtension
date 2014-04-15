@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>User query options</title>
+    <script src="./jquery-1.8.2.min.js" type="text/javascript"></script>
+    <script src="./options.js" type="text/javascript"></script>
+  </head>
+  <style type="text/css">
+    body{
+      margin: auto;
+      width: 800px 
+    }
+    .url{
+      width: 300px;
+    }
+    .query{
+      width: 200px;
+    }
+    .value{
+      width: 100px;
+    }
+  </style>
+<body id="options-page">
+  <h1>Options</h1>
+  <p>Example: <a href="https://docs.google.com/forms/d/19B28hXsgQE2OiCtIoHstAIIIpAgflT4CJ6QfUjmT-B4/viewform">Nymi Chrome Extension Test Form</a></p>
+  <!--  <label>Debug: <input type="checkbox" name="debug" value="1" /></label> -->
+  <table>
+    <thead>
+      <tr>
+        <th>URL</th>
+        <th>Query</th>
+        <th>Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="template">
+        <td><input type="text" name="" value="" class="url" /></td>
+        <td><input type="text" name="" value="" class="query" /></td>
+        <td><input type="text" name="" value="" class="value" /></td>
+        <td><a href="#" class="remove">×</a></td>
+      </tr>
+    </tbody>
+  </table>
+  <a href="#" class="new">New Query</a>
+
+</body>
