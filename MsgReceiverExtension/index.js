@@ -9,21 +9,28 @@
   var port = chrome.runtime.connectNative('com.nymi.nativemsg');
 
   send.addEventListener('click', function() {
-    appendLog("sending message.... ");
-    // chrome.runtime.sendMessage(
-    //   sendId.value, 
-    //   {myCustomMessage: sendText.value}, 
-    //   function(response) { 
-    //     appendLog("response: "+JSON.stringify(response));
-    //   })
-    
-    //port.postMessage({ text: sendText.value });
+    //appendLog("sending message.... ");
+
+    console.log('sending message' + sendText.value)
     port.postMessage(sendText.value);
+    sendText.value = "";
   });
 
+  // doesn't work yet:
+  // sendText.onkeypress = function (e) {
+  //   if (e.keyCode == 13) {
+  //     console.log('enter key pressed')
+  //     console.log('sending message' + sendText.value)
+  //     port.postMessage(sendText.value);
+  //     sendText.value = "";
+  //   }
+  // };
+
   port.onMessage.addListener(function(msg) {
-    console.log("Received: " + msg.text);
-    appendLog("Received: " + msg.text);
+    if (msg.target == "console")
+      console.log("Received: " + msg.text);
+    if (msg.target == "user")
+      appendLog(msg.text);
     // port.postMessage('Got your message');
 
     if (msg.text == "VALIDATED"){
@@ -34,8 +41,8 @@
           "condition": "none",
           "args": [], 
           "note": "validated"
-      }, function(response){ //this function is called "sendResponse" in eventPage.js
-        
+      }, function(response){ 
+
       });
     }
   });
@@ -51,11 +58,9 @@
 
   context.appendLog = appendLog;
 
-  chrome.runtime.onSuspend.addListener(function(){
-    console.log('runtime on suspend listener worked')
-    alert('runtime on suspend listener worked')
-
-
-  });
+  // chrome.runtime.onSuspend.addListener(function(){
+  //   console.log('runtime on suspend listener worked')
+  //   alert('runtime on suspend listener worked')
+  // });
 
 })(window)

@@ -10,7 +10,7 @@
 #include <windows.h>
 #include <fstream>
 
-std::ofstream fileStream("W:\\log.txt");
+//std::ofstream fileStream("W:\\log.txt");
 
 bool gNclInitialized=false;
 int gAgreementHandle;
@@ -138,7 +138,7 @@ std::string getMsgFromChrome(){
         //    std::cout << inp;
         //}
 
-	sendMsgToChrome(inp);
+	sendMsgToChrome("native app got message: "+ inp, "console");
 	return inp;
 }
 
