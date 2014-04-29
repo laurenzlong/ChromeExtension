@@ -1,6 +1,3 @@
-// NCLTestApp.cpp : Defines the entry point for the console application.
-//
-
 #include "stdafx.h"
 #include <string>
 #include <sstream>
@@ -10,33 +7,24 @@
 #include <windows.h>
 #include <fstream>
 
-//std::ofstream fileStream("W:\\log.txt");
+using namespace std;
+
+//ofstream fileStream("W:\\log.txt");
 
 bool gNclInitialized=false;
 int gAgreementHandle;
-std::vector<NclProvision> gProvisions; // the allowed provisions
+vector<NclProvision> gProvisions; // the allowed provisions
 
+void sendMsgToChrome (string msg, string target);
+string getMsgFromChrome();
+string homePath();
+int saveProvisionsToFile();
+int getProvisionsFromFile();
 
-void sendMsgToChrome (std::string msg, std::string target){
-	//std::stringstream ss;
-	//ss << "{\"text\": \"" << msg << "\"}";
-	//std::string message = ss.str();
-
-	std::string message = "{\"target\": \"" + target + "\", \"text\": \"" + msg + "\"}";
-
-	unsigned int len = message.length();
-    // We need to send the 4 bytes of length information
-    std::cout << char(((len>>0) & 0xFF))
-              << char(((len>>8) & 0xFF))
-              << char(((len>>16) & 0xFF))
-              << char(((len>>24) & 0xFF));
-    // Now we can output our message
-    std::cout << message;
-}
 
 void callback(NclEvent event, void* userData){
 
-	std::string led_pattern = "";
+	string led_pattern = "";
     switch(event.type){
         case NCL_EVENT_INIT:
 			sendMsgToChrome("NCL_EVENT_INIT passed to callback", "console");
@@ -56,7 +44,7 @@ void callback(NclEvent event, void* userData){
             gAgreementHandle=event.agreement.nymiHandle;
             sendMsgToChrome("Is this: ", "user");
             for(unsigned i=0; i<NCL_LEDS; ++i){
-				std::string led_char = event.agreement.leds[i]?"1":"0";
+				string led_char = event.agreement.leds[i]?"1":"0";
                 led_pattern = led_pattern + led_char;
 			}
 			sendMsgToChrome(led_pattern, "user");
@@ -65,6 +53,7 @@ void callback(NclEvent event, void* userData){
         case NCL_EVENT_PROVISION:
 			sendMsgToChrome("NCL_EVENT_PROVISION passed to callback", "console");
             gProvisions.push_back(event.provision.provision);
+			saveProvisionsToFile();
             sendMsgToChrome("provisioned completed", "user");
             break;
         case NCL_EVENT_DISCONNECTION:
@@ -91,10 +80,26 @@ void callback(NclEvent event, void* userData){
     }
 }
 
+void sendMsgToChrome (string msg, string target){
+	//stringstream ss;
+	//ss << "{\"text\": \"" << msg << "\"}";
+	//string message = ss.str();
 
-std::string getMsgFromChrome(){
+	string message = "{\"target\": \"" + target + "\", \"text\": \"" + msg + "\"}";
+
+	unsigned int len = message.length();
+    // We need to send the 4 bytes of length information
+    cout << char(((len>>0) & 0xFF))
+              << char(((len>>8) & 0xFF))
+              << char(((len>>16) & 0xFF))
+              << char(((len>>24) & 0xFF));
+    // Now we can output our message
+    cout << message;
+}
+
+string getMsgFromChrome(){
 	unsigned int c, i, t=0;
-    std::string inp;  
+    string inp;  
     bool bCommunicationEnds = false;
 
         inp="";
@@ -107,9 +112,9 @@ std::string getMsgFromChrome(){
         // Loop getchar to pull in the message until we reach the total
         //  length provided.
 
-		std::stringstream ss;
+		stringstream ss;
 		ss << t;
-		std::string str = ss.str();
+		string str = ss.str();
 		//sendMsgToChrome("t is" );
 		//sendMsgToChrome(str);
 		
@@ -130,21 +135,75 @@ std::string getMsgFromChrome(){
         //{
         //    unsigned int len = inp.length();
         //    // We need to send the 4 btyes of length information
-        //    std::cout << char(((len>>0) & 0xFF))
+        //    cout << char(((len>>0) & 0xFF))
         //        << char(((len>>8) & 0xFF))
         //        << char(((len>>16) & 0xFF))
         //        << char(((len>>24) & 0xFF));
         //    // Now we can output our message
-        //    std::cout << inp;
+        //    cout << inp;
         //}
 
 	sendMsgToChrome("native app got message: "+ inp, "console");
 	return inp;
 }
 
+string homePath(){
+	//returns the path for where provisions are saved
+	return "W:\\ChromeExtension\\";
+}
+
+
+int saveProvisionsToFile(){
+	ofstream file((homePath()+"provisions.txt").c_str());
+	//ofstream file("provisions.txt");
+	file<<gProvisions.size()<<"\n";
+	for(unsigned i=0; i<gProvisions.size(); ++i){
+		//file<<gProvisions[i].name<<"  ";
+		for(unsigned j=0; j<NCL_PROVISION_KEY_SIZE; ++j) file<<(int)gProvisions[i].key[j]<<" ";
+		file<<" ";
+		for(unsigned j=0; j<NCL_PROVISION_ID_SIZE; ++j) file<<(int)gProvisions[i].id[j]<<" ";
+		file<<"\n";
+	}
+	file.close();
+	return 0;
+}
+
+//string floatToString(float num){
+//	ostringstream convert;   // stream used for the conversion
+//	convert << num;
+//	return convert.str();
+//}
+int getProvisionsFromFile(){
+	ifstream file((homePath()+"provisions.txt").c_str());
+	if(file.good()){
+		//provisions
+		sendMsgToChrome("Getting previously stored devices", "console");
+		unsigned size;
+		file>>size;
+		for(unsigned i=0; i<size; ++i){
+			gProvisions.push_back(NclProvision());
+			//file>>gProvisions.back().name;
+			for(unsigned j=0; j<NCL_PROVISION_KEY_SIZE; ++j){
+				unsigned b;
+				file>>b;
+				gProvisions.back().key[j]=b;
+			}
+			for(unsigned j=0; j<NCL_PROVISION_ID_SIZE; ++j){
+				unsigned b;
+				file>>b;
+				gProvisions.back().id[j]=b;
+			}
+		}
+		return 0;
+	}
+	else
+		return 1;
+}
+
+
 int _tmain(int argc, _TCHAR* argv[])
 {
-	std::cout.setf( std::ios_base::unitbuf ); //instead of "<< eof" and "flushall"
+	cout.setf( ios_base::unitbuf ); //instead of "<< eof" and "flushall"
 
 	sendMsgToChrome("type 'setup' if you are using a new Nymi, or 'authenticate' if you are a returning user.", "user");
 
@@ -152,22 +211,25 @@ int _tmain(int argc, _TCHAR* argv[])
 		sendMsgToChrome("The Nymi Communication Library failed to run", "user");
 		return -1;
 	}
-	//sendMsgToChrome("before while loop");
-	//fileStream<<"lolol\n"<<std::flush;
-	while(true){
-       std::string input = getMsgFromChrome();
 
-	   //fileStream<<"got input:"+input+"\n"<<std::flush;
+	if (getProvisionsFromFile() == 1)
+		sendMsgToChrome("did not find stored provisions", "console");
+
+
+	while(true){
+       string input = getMsgFromChrome();
+
+	   //fileStream<<"got input:"+input+"\n"<<flush;
 
 	   //sendMsgToChrome("exited getMsgFromChrome()");
 	   
        if(!gNclInitialized){
-		   //fileStream<<"NCL not initialized"<<std::flush;
+		   //fileStream<<"NCL not initialized"<<flush;
            sendMsgToChrome("NCL didn't finished initializing yet, please wait.", "user");
            continue;
        }
        else if(input=="\"setup\""){
-		   //fileStream<<"got to discover clause"<<std::flush;
+		   //fileStream<<"got to discover clause"<<flush;
            sendMsgToChrome("starting discovery", "console");
            NclBool result = nclStartDiscovery();
 		   //sendMsgToChrome(result.str());
@@ -193,7 +255,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		   break;
 	   }
 	   else{
-		   //fileStream<<"got to else clause"<<std::flush;
+		   //fileStream<<"got to else clause"<<flush;
 		   sendMsgToChrome("invalid input, please type 'setup', 'authenticate', or 'quit'", "user");
 		   continue;
 	   }
