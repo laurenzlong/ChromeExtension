@@ -7,6 +7,7 @@
   var send=document.getElementById("send");
 
   var port = chrome.runtime.connectNative('com.nymi.nativemsg');
+  //var port = chrome.runtime.connectNative('com.nymi.proximity');
 
   send.addEventListener('click', function() {
     //appendLog("sending message.... ");
