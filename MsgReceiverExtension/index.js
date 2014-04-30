@@ -1,50 +1,37 @@
 (function(context){
-
-  // document.getElementById("appid").value=chrome.runtime.id;  
+  
   var logField = document.getElementById("log");
   var sendText=document.getElementById("sendText");
-  //var sendId=document.getElementById("sendId");
   var send=document.getElementById("send");
 
   var port = chrome.runtime.connectNative('com.nymi.nativemsg');
-  //var port = chrome.runtime.connectNative('com.nymi.proximity');
+  var background = chrome.extension.getBackgroundPage();
 
   send.addEventListener('click', function() {
     //appendLog("sending message.... ");
-
     console.log('sending message' + sendText.value)
     port.postMessage(sendText.value);
     sendText.value = "";
   });
 
-  // doesn't work yet:
-  // sendText.onkeypress = function (e) {
-  //   if (e.keyCode == 13) {
-  //     console.log('enter key pressed')
-  //     console.log('sending message' + sendText.value)
-  //     port.postMessage(sendText.value);
-  //     sendText.value = "";
-  //   }
-  // };
+  sendText.onkeypress = function (e) {
+    var code = e.keyCode || e.which;
+    console.log(code)
+    if (code == 13) { //the enter key
+      console.log('sending message' + sendText.value)
+      port.postMessage(sendText.value);
+      sendText.value = "";
+    }
+  };
 
   port.onMessage.addListener(function(msg) {
     if (msg.target == "console")
       console.log("Received: " + msg.text);
     if (msg.target == "user")
       appendLog(msg.text);
-    // port.postMessage('Got your message');
 
     if (msg.text == "VALIDATED"){
-      chrome.runtime.sendMessage({
-        //sends message to own extension (eventPage.js) by default, or else add ID here
-          "subject": "nymiStatus",
-          "action": "none",
-          "condition": "none",
-          "args": [], 
-          "note": "validated"
-      }, function(response){ 
-
-      });
+      background.core["authenticated"] = true;
     }
   });
 

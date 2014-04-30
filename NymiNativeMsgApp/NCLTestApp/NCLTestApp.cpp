@@ -1,3 +1,4 @@
+
 #include "stdafx.h"
 #include <string>
 #include <sstream>
@@ -9,8 +10,7 @@
 
 using namespace std;
 
-//ofstream fileStream("W:\\log.txt");
-
+FILE * pFile; // file to save stderr to
 bool gNclInitialized=false;
 int gAgreementHandle;
 vector<NclProvision> gProvisions; // the allowed provisions
@@ -59,6 +59,10 @@ void callback(NclEvent event, void* userData){
         case NCL_EVENT_DISCONNECTION:
 			sendMsgToChrome("NCL_EVENT_DISCONNECTION passed to callback", "console");
             sendMsgToChrome("disconnected", "console");
+			nclLockErrorStream();
+			fprintf(pFile, "disconnect reason: %d\n", event.disconnection.reason);
+			fflush(pFile);
+			nclUnlockErrorStream();
             break;
         case NCL_EVENT_FIND:
 			sendMsgToChrome("NCL_EVENT_FIND passed to callback", "console");
@@ -81,10 +85,6 @@ void callback(NclEvent event, void* userData){
 }
 
 void sendMsgToChrome (string msg, string target){
-	//stringstream ss;
-	//ss << "{\"text\": \"" << msg << "\"}";
-	//string message = ss.str();
-
 	string message = "{\"target\": \"" + target + "\", \"text\": \"" + msg + "\"}";
 
 	unsigned int len = message.length();
@@ -100,7 +100,6 @@ void sendMsgToChrome (string msg, string target){
 string getMsgFromChrome(){
 	unsigned int c, i, t=0;
     string inp;  
-    bool bCommunicationEnds = false;
 
         inp="";
         t=0;
@@ -111,18 +110,11 @@ string getMsgFromChrome(){
 
         // Loop getchar to pull in the message until we reach the total
         //  length provided.
-
-		stringstream ss;
-		ss << t;
-		string str = ss.str();
-		//sendMsgToChrome("t is" );
-		//sendMsgToChrome(str);
 		
         for (i=0; i < t; i++) {
             c = getchar();
             if(c == EOF)
             {
-                bCommunicationEnds = true;
                 i = t;
             }
             else
@@ -131,34 +123,20 @@ string getMsgFromChrome(){
             }
         }
 
-        //if(!bCommunicationEnds)
-        //{
-        //    unsigned int len = inp.length();
-        //    // We need to send the 4 btyes of length information
-        //    cout << char(((len>>0) & 0xFF))
-        //        << char(((len>>8) & 0xFF))
-        //        << char(((len>>16) & 0xFF))
-        //        << char(((len>>24) & 0xFF));
-        //    // Now we can output our message
-        //    cout << inp;
-        //}
-
 	sendMsgToChrome("native app got message: "+ inp, "console");
 	return inp;
 }
 
 string homePath(){
-	//returns the path for where provisions are saved
+	//returns the path for where provisions and error log are saved
 	return "W:\\ChromeExtension\\";
 }
 
 
 int saveProvisionsToFile(){
 	ofstream file((homePath()+"provisions.txt").c_str());
-	//ofstream file("provisions.txt");
 	file<<gProvisions.size()<<"\n";
 	for(unsigned i=0; i<gProvisions.size(); ++i){
-		//file<<gProvisions[i].name<<"  ";
 		for(unsigned j=0; j<NCL_PROVISION_KEY_SIZE; ++j) file<<(int)gProvisions[i].key[j]<<" ";
 		file<<" ";
 		for(unsigned j=0; j<NCL_PROVISION_ID_SIZE; ++j) file<<(int)gProvisions[i].id[j]<<" ";
@@ -168,21 +146,14 @@ int saveProvisionsToFile(){
 	return 0;
 }
 
-//string floatToString(float num){
-//	ostringstream convert;   // stream used for the conversion
-//	convert << num;
-//	return convert.str();
-//}
 int getProvisionsFromFile(){
 	ifstream file((homePath()+"provisions.txt").c_str());
 	if(file.good()){
-		//provisions
 		sendMsgToChrome("Getting previously stored devices", "console");
 		unsigned size;
 		file>>size;
 		for(unsigned i=0; i<size; ++i){
 			gProvisions.push_back(NclProvision());
-			//file>>gProvisions.back().name;
 			for(unsigned j=0; j<NCL_PROVISION_KEY_SIZE; ++j){
 				unsigned b;
 				file>>b;
@@ -203,11 +174,11 @@ int getProvisionsFromFile(){
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	cout.setf( ios_base::unitbuf ); //instead of "<< eof" and "flushall"
+	cout.setf( ios_base::unitbuf ); //instead of "<< eof" and "flushall", necessary for sending messages to chrome
 
-	sendMsgToChrome("type 'setup' if you are using a new Nymi, or 'authenticate' if you are a returning user.", "user");
-
-	if(!nclInit(callback, NULL, "Chrome", NCL_FALSE, stderr)){
+	sendMsgToChrome("type 'setup' if you are using a new Nymi, or 'validate' if you are a returning user.", "user");
+	pFile = fopen ((homePath()+"error.txt").c_str(), "w");
+	if(!nclInit(callback, NULL, "Chrome", NCL_FALSE, pFile)){
 		sendMsgToChrome("The Nymi Communication Library failed to run", "user");
 		return -1;
 	}
@@ -219,20 +190,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	while(true){
        string input = getMsgFromChrome();
 
-	   //fileStream<<"got input:"+input+"\n"<<flush;
-
-	   //sendMsgToChrome("exited getMsgFromChrome()");
-	   
        if(!gNclInitialized){
-		   //fileStream<<"NCL not initialized"<<flush;
            sendMsgToChrome("NCL didn't finished initializing yet, please wait.", "user");
            continue;
        }
        else if(input=="\"setup\""){
-		   //fileStream<<"got to discover clause"<<flush;
            sendMsgToChrome("starting discovery", "console");
            NclBool result = nclStartDiscovery();
-		   //sendMsgToChrome(result.str());
 		   sendMsgToChrome(" done discovery", "console");
        }
        else if(input=="\"agree\""){
@@ -245,7 +209,7 @@ int _tmain(int argc, _TCHAR* argv[])
            nclDisconnect(gAgreementHandle);
 		   sendMsgToChrome("done disconnecting", "console");
        }
-       else if(input=="\"authenticate\""){
+       else if(input=="\"validate\""){
            sendMsgToChrome("starting finding", "console");
            nclStartFinding(gProvisions.data(), gProvisions.size());
 		   sendMsgToChrome("done finding", "console");
@@ -255,14 +219,14 @@ int _tmain(int argc, _TCHAR* argv[])
 		   break;
 	   }
 	   else{
-		   //fileStream<<"got to else clause"<<flush;
-		   sendMsgToChrome("invalid input, please type 'setup', 'authenticate', or 'quit'", "user");
+		   sendMsgToChrome("invalid input, please type 'setup', 'validate', or 'quit'", "user");
 		   continue;
 	   }
    }
    //finish
-   //sendMsgToChrome("after while loop");
+
    nclFinish();
+   fclose(pFile);
 
 	return 0;
 
