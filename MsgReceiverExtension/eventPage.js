@@ -1,9 +1,10 @@
 // this is the event page
 
-var background = chrome.extension.getBackgroundPage();
-addEventListener("unload", function (event) {
-     background.console.log(event.type);
-}, true);
+// var background = chrome.extension.getBackgroundPage();
+// addEventListener("unload", function (event) {
+//     console.log('popup closed')
+//      background.console.log(event.type);
+// }, true);
 
 var core = {
   "getOptions": function(){

@@ -3,16 +3,17 @@
   // var logField = document.getElementById("log");
   // var sendText=document.getElementById("sendText");
   // var send=document.getElementById("send");
-
+  var background = chrome.extension.getBackgroundPage();
   var port = chrome.runtime.connectNative('com.nymi.nativemsg');
   var background = chrome.extension.getBackgroundPage();
+  var validated = false;
 
   port.onMessage.addListener(function(msg) {
     if (msg.target == "console")
       console.log("Received: " + msg.text);
 
     if (msg.target == "extension"){
-      var msgArray = msg.text.split(" ");
+      var msgArray = msg.text.split("  ");
       var message = msgArray[0];
 
       if (message == "ncl-done-init"){
@@ -28,14 +29,25 @@
         $('.add-new-nymi').css('display','inline-block');
       }
       else if ( message=="found-saved-provisions"){
+        //start looking for Nymi
         $('div').css('display', 'none');
         $('.looking-for-nymi').css('display','inline-block');
         $('.loader').css('display','inline-block');
-        $('.add-new-nymi').css('display','inline-block');
+        //$('.add-new-nymi').css('display','inline-block');
         port.postMessage("validate");
+        setTimeout(function() {
+          if (!validated){
+            port.postMessage("disconnect");
+            $('.looking-for-nymi').css('display','none');
+            $('.loader').css('display','none');
+            $('.no-nymis-found').css('display','inline-block'); 
+            $('.add-new-nymi').css('display','inline-block');
+          }  
+        }, 5000);
       }
       else if ( message =="PATTERN"){
         var led = msgArray[1];
+        console.log(led)
         $('div').css('display', 'none');
         $('.led-pattern').text(led);
         $('.led-pattern').css('display','inline-block');
@@ -48,9 +60,11 @@
         $('.add-new-nymi').css('display','inline-block');
       }
       else if (message == "VALIDATED"){
+        validated = true;
         $('.looking-for-nymi').css('display','none');
         $('.loader').css('display','none');
         $('.nymi-validated').css('display','inline-block');
+        $('.add-new-nymi').css('display','inline-block');
         background.core["authenticated"] = true;
       }
       else if (message == "unexpected-disconnect"){
@@ -71,7 +85,7 @@
 
   $('.button-yes').click(function(){
     $('div').css('display', 'none');
-    $('.loader').css('display','block');
+    $('.loader').css('display','inline-block');
     port.postMessage('agree');
   });
 
@@ -84,11 +98,17 @@
   });
 
   port.onDisconnect.addListener(function() {
-    console.log("Disconnected");
+    console.log("Port disconnected");
+    background.console.log('port disconnected');
     $('div').css('display', 'none');
     $('.reopen-popup').css('display','block');
   });
 
+addEventListener("unload", function (event) {
+    port.postMessage('quit');
+    background.console.log(chrome.runtime.lastError);
+    background.console.log(event.type);
+}, true);
 
   // var appendLog = function(message) {
   //   logField.innerText+="\n"+message;

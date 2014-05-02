@@ -200,6 +200,8 @@ int _tmain(int argc, _TCHAR* argv[])
        }
        else if(input=="\"setup\""){
            sendMsgToChrome("starting discovery", "console");
+		   normalDisconnect = true;
+		   nclDisconnect(0);
            NclBool result = nclStartDiscovery();
 		   sendMsgToChrome(" done discovery", "console");
        }
@@ -211,9 +213,10 @@ int _tmain(int argc, _TCHAR* argv[])
        }
        else if(input=="\"reject\""){
            sendMsgToChrome("disconnecting", "console");
-           nclDisconnect(gAgreementHandle);
 		   normalDisconnect = true;
+           nclDisconnect(gAgreementHandle);
 		   sendMsgToChrome("done disconnecting", "console");
+		   nclStartDiscovery(); //restart discovery
        }
        else if(input=="\"validate\""){
            sendMsgToChrome("starting finding", "console");
@@ -228,8 +231,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			   sendMsgToChrome("found-saved-provisions","extension");
 	   }
 	   else if(input=="\"disconnect\""){
-		   nclDisconnect(gAgreementHandle);
 		   normalDisconnect = true;
+		   nclDisconnect(0);
 	   }
        else if(input=="\"quit\""){ 
 		   sendMsgToChrome("program quitting", "console");
