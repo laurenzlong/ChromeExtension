@@ -4,7 +4,7 @@
   "description": "This extension will autofill online forms",
   "browser_action": {
     "default_title": "autofill forms",
-    "default_icon": "icon_16.png",
+    "default_icon": "Icon_16.png",
     "default_popup": "index.html"
   },
   "background": {

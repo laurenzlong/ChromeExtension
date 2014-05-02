@@ -12,6 +12,7 @@ using namespace std;
 
 FILE * pFile; // file to save stderr to
 bool gNclInitialized=false;
+bool normalDisconnect=false;
 int gAgreementHandle;
 vector<NclProvision> gProvisions; // the allowed provisions
 
@@ -27,13 +28,13 @@ void callback(NclEvent event, void* userData){
 	string led_pattern = "";
     switch(event.type){
         case NCL_EVENT_INIT:
-			sendMsgToChrome("NCL_EVENT_INIT passed to callback", "console");
+			sendMsgToChrome("ncl-done-init", "extension");
             if(event.outcome.success) gNclInitialized=true;
             else exit(-1);
             break;
         case NCL_EVENT_DISCOVERY:
 			sendMsgToChrome("NCL_EVENT_DISCOVERY passed to callback", "console");
-            sendMsgToChrome("Nymi discovered", "user");
+            sendMsgToChrome("Nymi discovered", "console");
             sendMsgToChrome("Stopping scan", "console");
             nclStopScan();
             sendMsgToChrome("Agreeing", "console");
@@ -42,19 +43,18 @@ void callback(NclEvent event, void* userData){
         case NCL_EVENT_AGREEMENT:
 			sendMsgToChrome("NCL_EVENT_AGREEMENT passed to callback", "console");
             gAgreementHandle=event.agreement.nymiHandle;
-            sendMsgToChrome("Is this: ", "user");
+            sendMsgToChrome("Is this: ", "console");
             for(unsigned i=0; i<NCL_LEDS; ++i){
 				string led_char = event.agreement.leds[i]?"1":"0";
-                led_pattern = led_pattern + led_char;
+                led_pattern = led_pattern + " "+ led_char;
 			}
-			sendMsgToChrome(led_pattern, "user");
-            sendMsgToChrome(" the correct LED pattern (agree/reject)?", "user");
+			sendMsgToChrome("PATTERN " + led_pattern, "extension");
             break;
         case NCL_EVENT_PROVISION:
 			sendMsgToChrome("NCL_EVENT_PROVISION passed to callback", "console");
             gProvisions.push_back(event.provision.provision);
 			saveProvisionsToFile();
-            sendMsgToChrome("provisioned completed", "user");
+            sendMsgToChrome("provision-done", "extension");
             break;
         case NCL_EVENT_DISCONNECTION:
 			sendMsgToChrome("NCL_EVENT_DISCONNECTION passed to callback", "console");
@@ -63,18 +63,22 @@ void callback(NclEvent event, void* userData){
 			fprintf(pFile, "disconnect reason: %d\n", event.disconnection.reason);
 			fflush(pFile);
 			nclUnlockErrorStream();
+			if (!normalDisconnect)
+				sendMsgToChrome("unexpected-disconnect","extension");
+			normalDisconnect = false;
             break;
         case NCL_EVENT_FIND:
 			sendMsgToChrome("NCL_EVENT_FIND passed to callback", "console");
             sendMsgToChrome("Nymi found", "console");
             sendMsgToChrome("Stopping scan", "console");
             nclStopScan();
-            sendMsgToChrome("Validating the Nymi...", "user");
+            sendMsgToChrome("Validating the Nymi...", "console");
             nclValidate(event.find.nymiHandle);
+			gAgreementHandle = event.find.nymiHandle;
             break;
         case NCL_EVENT_VALIDATION:
 			sendMsgToChrome("NCL_EVENT_VALIDATION passed to callback", "console");
-            sendMsgToChrome("VALIDATED", "user");
+            sendMsgToChrome("VALIDATED", "extension");
 			break;
 		case NCL_EVENT_SCAN_START:
 			sendMsgToChrome("NCL_EVENT_SCAN_START passed to callback", "console");
@@ -176,22 +180,22 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	cout.setf( ios_base::unitbuf ); //instead of "<< eof" and "flushall", necessary for sending messages to chrome
 
-	sendMsgToChrome("type 'setup' if you are using a new Nymi, or 'validate' if you are a returning user.", "user");
 	pFile = fopen ((homePath()+"error.txt").c_str(), "w");
 	if(!nclInit(callback, NULL, "Chrome", NCL_FALSE, pFile)){
-		sendMsgToChrome("The Nymi Communication Library failed to run", "user");
+		sendMsgToChrome("The Nymi Communication Library failed to run", "console");
+		sendMsgToChrome("ncl-run-fail", "extension");
 		return -1;
 	}
 
-	if (getProvisionsFromFile() == 1)
-		sendMsgToChrome("did not find stored provisions", "console");
+	//if (getProvisionsFromFile() == 1)
+	//	sendMsgToChrome("did not find stored provisions", "console");
 
 
 	while(true){
        string input = getMsgFromChrome();
 
        if(!gNclInitialized){
-           sendMsgToChrome("NCL didn't finished initializing yet, please wait.", "user");
+           sendMsgToChrome("ncl-not-initialized", "console");
            continue;
        }
        else if(input=="\"setup\""){
@@ -202,11 +206,13 @@ int _tmain(int argc, _TCHAR* argv[])
        else if(input=="\"agree\""){
            sendMsgToChrome("provisioning", "console");
            nclProvision(gAgreementHandle);
+		   normalDisconnect = true;
 		   sendMsgToChrome("done provisioning", "console");
        }
        else if(input=="\"reject\""){
            sendMsgToChrome("disconnecting", "console");
            nclDisconnect(gAgreementHandle);
+		   normalDisconnect = true;
 		   sendMsgToChrome("done disconnecting", "console");
        }
        else if(input=="\"validate\""){
@@ -214,12 +220,24 @@ int _tmain(int argc, _TCHAR* argv[])
            nclStartFinding(gProvisions.data(), gProvisions.size());
 		   sendMsgToChrome("done finding", "console");
        }
+	   else if(input=="\"getprovisions\""){
+		   sendMsgToChrome("got command  to get provisions", "console");
+		   if (getProvisionsFromFile() == 1)
+			   sendMsgToChrome("no-saved-provisions","extension");
+		   else
+			   sendMsgToChrome("found-saved-provisions","extension");
+	   }
+	   else if(input=="\"disconnect\""){
+		   nclDisconnect(gAgreementHandle);
+		   normalDisconnect = true;
+	   }
        else if(input=="\"quit\""){ 
 		   sendMsgToChrome("program quitting", "console");
+		   normalDisconnect = true;
 		   break;
 	   }
 	   else{
-		   sendMsgToChrome("invalid input, please type 'setup', 'validate', or 'quit'", "user");
+		   sendMsgToChrome("invalid input received from chrome!!", "console");
 		   continue;
 	   }
    }
