@@ -1,21 +1,16 @@
-// this is the event page
+// this is the background page
 
-// var background = chrome.extension.getBackgroundPage();
-// addEventListener("unload", function (event) {
-//     console.log('popup closed')
-//      background.console.log(event.type);
-// }, true);
+var port;
 
 var core = {
   "getOptions": function(){
-    console.log('getOptions', localStorage);
+    console.log('getOptions', localStorage); //retrieves form filling info
     return localStorage;
   },
   "authenticated": false // this is changed to true by index.js when the Nymi is validated
 };
 
 window.onload = function(){
-
   chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
     console.log('eventPage.js got a new message')
     if (request.subject == "contentScript"){
@@ -30,9 +25,16 @@ window.onload = function(){
         console.log('not authenticated');
     }
   });
-
-  chrome.tabs.onRemoved.addListener(function(tabID, removeInfo){
-    //maybe now close the native application
-  });
 }
 
+var popupLoaded = function(){
+  //called by index.js when user clicks on extension button
+  console.log('popup loaded, opening port')
+  port = chrome.runtime.connectNative('com.nymi.nativemsg');
+}; 
+
+var popupUnloaded = function(){
+  //called by index.js when user closes the popup
+  console.log('popup closed, quitting program')
+  port.postMessage('quit');
+};

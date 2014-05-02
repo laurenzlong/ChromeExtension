@@ -214,7 +214,7 @@ int _tmain(int argc, _TCHAR* argv[])
        else if(input=="\"reject\""){
            sendMsgToChrome("disconnecting", "console");
 		   normalDisconnect = true;
-           nclDisconnect(gAgreementHandle);
+           nclDisconnect(0);
 		   sendMsgToChrome("done disconnecting", "console");
 		   nclStartDiscovery(); //restart discovery
        }
@@ -235,7 +235,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		   nclDisconnect(0);
 	   }
        else if(input=="\"quit\""){ 
-		   sendMsgToChrome("program quitting", "console");
 		   normalDisconnect = true;
 		   break;
 	   }

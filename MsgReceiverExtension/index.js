@@ -1,12 +1,10 @@
 (function(context){
   
-  // var logField = document.getElementById("log");
-  // var sendText=document.getElementById("sendText");
-  // var send=document.getElementById("send");
   var background = chrome.extension.getBackgroundPage();
-  var port = chrome.runtime.connectNative('com.nymi.nativemsg');
-  var background = chrome.extension.getBackgroundPage();
+  //tells background page to open port and start Nymi native app
+  background.popupLoaded();
   var validated = false;
+  var port = background.port;
 
   port.onMessage.addListener(function(msg) {
     if (msg.target == "console")
@@ -93,49 +91,19 @@
     $('div').css('display', 'none');
     $('.provision-start').css('display','block');
     $('.provision-restart').css('display','block');
-    $('.loader').css('display','block');
+    $('.loader').css('display','inline-block');
     port.postMessage('reject');
   });
 
   port.onDisconnect.addListener(function() {
-    console.log("Port disconnected");
-    background.console.log('port disconnected');
     $('div').css('display', 'none');
     $('.reopen-popup').css('display','block');
   });
 
 addEventListener("unload", function (event) {
-    port.postMessage('quit');
-    background.console.log(chrome.runtime.lastError);
-    background.console.log(event.type);
+  //when popup is closed, tells background page to close the port
+  //and properly exit the native program by calling nclFinish()
+    background.popupUnloaded();
 }, true);
-
-  // var appendLog = function(message) {
-  //   logField.innerText+="\n"+message;
-  // }
-
-  // context.appendLog = appendLog;
-
-  // chrome.runtime.onSuspend.addListener(function(){
-  //   console.log('runtime on suspend listener worked')
-  //   alert('runtime on suspend listener worked')
-  // });
-
-  // send.addEventListener('click', function() {
-  //   //appendLog("sending message.... ");
-  //   console.log('sending message' + sendText.value)
-  //   port.postMessage(sendText.value);
-  //   sendText.value = "";
-  // });
-
-  // sendText.onkeypress = function (e) {
-  //   var code = e.keyCode || e.which;
-  //   //console.log(code)
-  //   if (code == 13) { //the enter key
-  //     console.log('sending message' + sendText.value)
-  //     port.postMessage(sendText.value);
-  //     sendText.value = "";
-  //   }
-  // };
 
 })(window)
